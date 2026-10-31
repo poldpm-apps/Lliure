@@ -12,6 +12,23 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preload" href="fonts/hanken-grotesk.woff2" as="font" type="font/woff2" crossorigin>
 <meta name="mobile-web-app-capable" content="yes">
+<script>
+  /* EL BOTÓ D'INSTAL·LAR, DE LA PÀGINA I NO DEL MENÚ. Al mòbil d'en Pol, el
+     menú de Chrome diu «ja està instal·lada» i només deixa crear una drecera
+     quan al domini ja hi ha una altra app (les germanes). El botó de la
+     pàgina, que crida la instal·lació del navegador directament, sí que la
+     instal·la: va passar igual amb Nòmines, el cos i Finances. L'avís arriba
+     d'hora, abans que l'app s'engegui: per això es desa aquí. */
+  addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    window.__potInstallar = e;
+    document.dispatchEvent(new Event('pot-installar'));
+  });
+  addEventListener('appinstalled', function () {
+    window.__potInstallar = null;
+    document.dispatchEvent(new Event('installada'));
+  });
+</script>
 <style>
 /* =========================================================================
    LLIURE — «la línia del temps lliure»
@@ -145,6 +162,10 @@ h2{font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
 .presa:active{background:var(--camp-alt)}
 .past-nota{margin-top:var(--e3)}
 .past-nota:empty{display:none}
+.crida{margin-top:var(--e5);padding:var(--e4) 0;border-top:1px solid var(--fil-fort);border-bottom:1px solid var(--fil)}
+.crida b{display:block;font-size:17px;font-weight:600}
+.crida p{margin-top:var(--e1)}
+.crida .btn{margin-top:var(--e3)}
 .avisos-linia{display:flex;align-items:center;gap:var(--e3);flex-wrap:wrap;margin-top:var(--e3)}
 .avisos-linia .enllac{min-height:32px;text-decoration:underline}
 .avisos-aj{margin-top:var(--e7)}
@@ -197,6 +218,13 @@ h2{font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
 </header>
 
 <main class="pagina">
+ <section class="crida" id="crInstalla" hidden aria-label="Instal·lar l'app">
+   <div>
+     <b>Instal·la l'app en aquest mòbil</b>
+     <p class="menut">Amb aquest botó i no amb el menú del navegador: s'obrirà sola, a pantalla completa, des de la seva icona.</p>
+     <button class="btn btn-primari" id="btInstalla" type="button">Instal·la l'app</button>
+   </div>
+ </section>
  <div class="cos-pag">
   <div class="col-a">
     <section class="veredicte" aria-live="off">
@@ -701,6 +729,22 @@ const Avisos = (function(){
     presa(data, k, feta){ if(actius()) crida('presa', {data, k, feta}).catch(() => {}); },
   };
 })();
+
+/* ---------------------------------------------------------- INSTAL·LAR
+   Surt només si el navegador diu que es pot instal·lar i l'app no s'ha obert
+   ja des de la icona. L'avís només es pot fer servir un cop. */
+function pintaInstalla(){
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  $('crInstalla').hidden = !window.__potInstallar || standalone;
+}
+document.addEventListener('pot-installar', pintaInstalla);
+document.addEventListener('installada', () => { pintaInstalla(); brindis('Instal·lada: ja la tens a la pantalla d\'inici.'); });
+$('btInstalla').onclick = () => {
+  const avis = window.__potInstallar; if(!avis) return;
+  avis.prompt();
+  avis.userChoice.then(r => { window.__potInstallar = null; pintaInstalla(); if(r && r.outcome === 'accepted') brindis('Instal·lant l\'app…'); }).catch(() => {});
+};
+pintaInstalla();
 
 if(!cfg) obre(true);
 pinta();
