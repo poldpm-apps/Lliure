@@ -6,7 +6,7 @@
  * connexió. Els avisos els porta un altre treballador (firebase-messaging-sw.js,
  * abast ./fcm/), perquè un abast només en pot tenir un.
  */
-var CAU = 'lliure-v3';
+var CAU = 'lliure-v4';
 var BASICS = ['./', 'index.html', 'manifest.webmanifest', 'fonts/hanken-grotesk.woff2', 'icona.svg', 'favicon.svg', 'icona-192.png'];
 
 self.addEventListener('install', function (ev) {

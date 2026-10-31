@@ -743,8 +743,17 @@ const Avisos = (function(){
       return c.delete('./__preses-pendents.json').then(() => { ultimMinut = -1; pintaPastilles(); });
     })).catch(() => {});
   }
-  document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') recullPendents(); });
+  /* LES MARQUES D'AVUI, AL SERVIDOR. Si en vas marcar una sense cobertura,
+     el servidor no ho sap i et seguiria reclamant-la cada deu minuts. Cada
+     cop que obres l'app se li tornen a dir; repetir-ho no fa cap mal. */
+  function sincronitzaAvui(){
+    if(!actius()) return;
+    const d = isoLocal(new Date());
+    (preses[d] || []).forEach(k => crida('presa', {data: d, k, feta: true}).catch(() => {}));
+  }
+  document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible'){ recullPendents(); sincronitzaAvui(); } });
   recullPendents();
+  setTimeout(sincronitzaAvui, 3000);
   desaConfigPerAlTreballador();
 
   setTimeout(actualitza, 5000);

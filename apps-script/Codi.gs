@@ -55,6 +55,13 @@ var FINAL = { titol: 'Tractament acabat', cos: 'Ja no hi ha més pastilles. Ets 
    d'aquests minuts, aquella presa ja no s'avisa. */
 var MARGE_MIN = 20;
 
+/* SI NO LA MARQUES, T'HO TORNA A DIR. Cada tants minuts després de l'avís,
+   mentre la presa no consti com a feta. S'atura quan arriba l'hora de la
+   presa següent, o com a molt al cap de REPETEIX_FINS_MIN: no té sentit
+   reclamar-te la de les 8 quan ja toca la de les 10:30. */
+var REPETEIX_CADA_MIN = 10;
+var REPETEIX_FINS_MIN = 120;
+
 // ===================================================================== porta
 
 function doPost(e) {
@@ -222,18 +229,42 @@ function cadaMinut() {
       }
     }
 
-    candidates.forEach(function (p) {
+    candidates.forEach(function (p, i) {
       var id = p.data + '#' + p.k;
-      var t = p.quan.getTime();
-      if (ara.getTime() < t || ara.getTime() > t + MARGE_MIN * MIN) return;
-      if (estat.enviades[id] || estat.preses[id]) return;
+      if (estat.preses[id]) return;                      // ja la tens marcada
+      var t = p.quan.getTime(), ara_ = ara.getTime();
+      if (ara_ < t) return;
       var hora = Utilities.formatDate(p.quan, Session.getScriptTimeZone(), 'HH:mm');
-      var titol = p.lliure ? 'Pastilles' : 'Pastilla · ' + (p.k + 1) + ' de ' + p.n;
-      var cos = p.lliure
-        ? 'Avui, 1 o 2 comprimits. Dia ' + p.dia + ' de ' + DIES_TRAC + '.'
-        : 'Toca la de les ' + hora + '. Dia ' + p.dia + ' de ' + DIES_TRAC + '.';
-      var r = envia_(estat, titol, cos, 'presa', { data: p.data, k: String(p.k) });
-      estat.enviades[id] = r.enviades ? 'ok' : 'error';
+      var extra = { data: p.data, k: String(p.k) };
+      var enviat = estat.enviades[id];
+      // Les dades d'abans eren 'ok'/'error': compten com enviades a l'hora.
+      if (typeof enviat === 'string') enviat = { u: t, n: 1 };
+
+      if (!enviat) {
+        // L'AVÍS. Si l'automatisme s'ha encallat i ja és massa tard, res.
+        if (ara_ > t + MARGE_MIN * MIN) return;
+        var titol = p.lliure ? 'Pastilles' : 'Pastilla · ' + (p.k + 1) + ' de ' + p.n;
+        var cos = p.lliure
+          ? 'Avui, 1 o 2 comprimits. Dia ' + p.dia + ' de ' + DIES_TRAC + '.'
+          : 'Toca la de les ' + hora + '. Dia ' + p.dia + ' de ' + DIES_TRAC + '.';
+        var r = envia_(estat, titol, cos, 'presa', extra);
+        estat.enviades[id] = { u: ara_, n: 1, ok: r.enviades ? 1 : 0 };
+        canvis = true;
+        return;
+      }
+
+      // EL RECORDATORI. Fins a la presa següent o el límit, el que arribi abans.
+      var seguent = candidates[i + 1];
+      var limit = t + REPETEIX_FINS_MIN * MIN;
+      if (seguent && seguent.quan.getTime() < limit) limit = seguent.quan.getTime();
+      if (ara_ >= limit) return;
+      if (ara_ - enviat.u < REPETEIX_CADA_MIN * MIN) return;
+      var cosR = p.lliure
+        ? 'Encara no has marcat la d\'avui. Dia ' + p.dia + ' de ' + DIES_TRAC + '.'
+        : 'Encara no has marcat la de les ' + hora + '. Dia ' + p.dia + ' de ' + DIES_TRAC + '.';
+      // Mateixa etiqueta que l'avís: el substitueix en comptes d'acumular-se.
+      envia_(estat, 'Pastilla pendent', cosR, 'presa', extra);
+      estat.enviades[id] = { u: ara_, n: (enviat.n || 1) + 1 };
       canvis = true;
     });
 

@@ -66,6 +66,10 @@ preses d'avui, i `provaNotificacio()` t'envia un avís.
 - **Canvis de pauta:** els dies 4, 13, 17 i 21, a l'hora de la primera presa i
   just abans del seu avís, «Pauta nova» diu què canvia. El dia 25, «Últim dia».
   El dia 26 a la mateixa hora, «Tractament acabat», i l'automatisme s'esborra.
+- **Si no la marques:** 10 minuts després de l'avís, «Pastilla pendent», i així
+  cada 10 minuts fins que la marquis. Para quan toca la presa següent o al cap
+  de 2 hores (`REPETEIX_CADA_MIN`, `REPETEIX_FINS_MIN`). L'app torna a enviar
+  les marques del dia cada cop que l'obres, per si en vas fer cap sense cobertura.
 - **«Presa ✓»:** l'avís de cada presa porta un botó que la marca sense obrir
   l'app. Ho diu al servidor i ho deixa a la memòria cau perquè l'app la mostri.
 - Si canvies l'hora o el dia 1 als Ajustos, l'app li ho diu al servidor.
