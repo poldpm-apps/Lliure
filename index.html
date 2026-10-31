@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e8eef0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lliure">
+<title>Lliure</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preload" href="fonts/hanken-grotesk.woff2" as="font" type="font/woff2" crossorigin>
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+/* =========================================================================
+   LLIURE — «la línia del temps lliure»
+
+   Germana de Nutrició, el cos i Finances: el mateix catàleg sobre el camp
+   pàl·lid. Regles i alineació, cap targeta; versaletes gravades; xifres
+   tabulars. El que ja ha passat és fosc; el que ve, clar.
+
+   La peça pròpia d'aquesta app és LA LÍNIA: un eix de temps en escala
+   logarítmica, de 20 minuts a 15 anys, amb cada fita del cos marcada com un
+   número de catàleg. L'ARA és una posició sobre l'eix, no un dipòsit.
+   ========================================================================= */
+@font-face {
+  font-family: "Hanken Grotesk";
+  src: url("fonts/hanken-grotesk.woff2") format("woff2");
+  font-weight: 400 600; font-style: normal; font-display: swap;
+}
+:root {
+  --camp:#e8eef0; --camp-alt:#f3f6f7; --blanc:#fbfcfc;
+  --tinta:#0d191e; --tinta-2:#3d5560; --tinta-3:#5b717a;
+  --t1:#bcced4; --t2:#7ab5c1; --t3:#1c8496; --t4:#054a57;
+  --fil:#9fb4bb; --fil-fort:#0d191e;
+  --ocre:#85580f; --ocre-fons:#f4ead7;
+  --e1:4px; --e2:8px; --e3:12px; --e4:16px; --e5:24px; --e6:32px; --e7:48px;
+  --sortida:cubic-bezier(.23,1,.32,1); --calaix:cubic-bezier(.32,.72,0,1);
+  --font:"Hanken Grotesk",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --amplada:680px;
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--camp);color:var(--tinta);font-family:var(--font);font-size:16px;line-height:1.45;
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+h1,h2,p,ul{margin:0;padding:0} ul{list-style:none}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer;touch-action:manipulation}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--t4);outline-offset:2px}
+.ic{width:24px;height:24px;display:block;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+h1{font-size:30px;font-weight:600;letter-spacing:-.015em;line-height:1.1}
+h2{font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;line-height:1.3}
+.gravat{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--tinta-2);line-height:1.35}
+.gravat.tinta{color:var(--tinta)}
+.menut{font-size:14px;color:var(--tinta-2);line-height:1.45}
+
+.capcalera,.pagina{max-width:var(--amplada);margin:0 auto;padding-left:var(--e4);padding-right:var(--e4)}
+.capcalera{padding-top:calc(var(--e2) + env(safe-area-inset-top))}
+.pagina{padding-bottom:calc(var(--e7) + env(safe-area-inset-bottom))}
+.cap-fila{display:flex;align-items:center;gap:var(--e2);min-height:56px}
+.marca{display:inline-flex;align-items:center;gap:var(--e2)}
+.marca svg{width:26px;height:26px}
+.cap-fila .btn{margin-left:auto}
+.cap-titol{padding-top:var(--e3)}
+.cap-titol p{margin-top:6px;font-size:15px;color:var(--tinta-2)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--e2);min-height:44px;padding:0 var(--e4);
+  border:1px solid var(--tinta);background:transparent;color:var(--tinta);font-size:15px;font-weight:600;letter-spacing:.01em;
+  transition:transform 140ms var(--sortida),background-color 160ms ease}
+.btn:active{transform:scale(.97)}
+.btn-primari{background:var(--tinta);color:var(--blanc)}
+.btn-ple{width:100%}
+.btn-icona{width:44px;min-width:44px;padding:0;border-color:transparent}
+@media (hover:hover) and (pointer:fine){.btn:hover{background:var(--camp-alt)}.btn-primari:hover{background:#1f2f36}}
+
+.seccio{margin-top:var(--e6)}
+.seccio-cap{display:flex;justify-content:space-between;align-items:baseline;gap:var(--e3);padding-bottom:10px;border-bottom:1px solid var(--fil-fort)}
+
+/* ------------------------------------------------------------ veredicte */
+.veredicte{margin-top:var(--e5);padding-top:var(--e3);border-top:1px solid var(--fil-fort)}
+.dies-gran{display:flex;align-items:baseline;gap:10px;margin-top:var(--e2)}
+.dies-n{font-size:88px;font-weight:500;letter-spacing:-.045em;line-height:.95}
+.dies-u{font-size:24px;font-weight:600;letter-spacing:-.01em}
+.rellotge{margin-top:var(--e2);font-size:17px;color:var(--tinta-2)}
+.rellotge b{color:var(--tinta);font-weight:600}
+
+/* ------------------------------------------------------------ la línia */
+.linia{display:block;width:100%;height:auto;margin-top:var(--e5);overflow:visible}
+.linia text{font-family:var(--font);font-size:11px;font-weight:600;letter-spacing:.1em;fill:var(--tinta-2)}
+.linia .ara-t{fill:var(--t4)}
+.linia-peu{display:flex;justify-content:space-between;gap:var(--e3);margin-top:var(--e2)}
+
+/* --------------------------------------------------------- les xifres */
+.xifres{display:grid;grid-template-columns:repeat(2,1fr);margin-top:var(--e5);border-top:1px solid var(--fil-fort)}
+.xifra{padding:var(--e4) var(--e3) var(--e4) 0;border-bottom:1px solid var(--fil);min-width:0}
+.xifra:nth-child(even){padding-left:var(--e4);border-left:1px solid var(--fil)}
+.xifra-gran{display:flex;align-items:baseline;gap:5px;margin-top:6px;flex-wrap:wrap}
+.xifra-n{font-size:40px;font-weight:500;letter-spacing:-.03em;line-height:1}
+.xifra-n small{font-size:20px;color:var(--tinta-3);letter-spacing:-.01em}
+.xifra-u{font-size:15px;font-weight:500;color:var(--tinta-2)}
+.xifra-sota{display:block;margin-top:6px;font-size:14px;color:var(--tinta-2)}
+
+/* ------------------------------------------------------------ el cos */
+.cita{margin-top:var(--e4);padding:2px 0 2px var(--e4);border-left:1px solid var(--t4)}
+.cita p{font-size:20px;line-height:1.4;font-weight:500;letter-spacing:-.005em;text-wrap:pretty}
+.cita footer{margin-top:var(--e3)}
+.fites{margin-top:var(--e4)}
+.fila-c{display:grid;grid-template-columns:84px 1fr auto;align-items:center;gap:10px;min-height:60px;
+  padding:var(--e2) 0;border-bottom:1px solid var(--fil)}
+.fila-c .cat{font-size:12px;font-weight:600;letter-spacing:.12em;color:var(--tinta-2);line-height:1.3}
+.fila-c .cat b{display:block;margin-top:2px;font-size:15px;letter-spacing:.02em;color:var(--tinta)}
+.fila-c .v{font-size:15px;line-height:1.35}
+.fila-c .q{font-size:13px;color:var(--tinta-2);text-align:right;white-space:nowrap}
+.fila-c[data-e="ve"] .cat b,.fila-c[data-e="ve"] .v{color:var(--tinta-3)}
+.fila-c[data-e="fet"] .q{color:var(--t4);font-weight:600}
+.fila-c[data-e="ara"]{background:var(--blanc);margin:0 calc(-1*var(--e2));padding-left:var(--e2);padding-right:var(--e2)}
+.mes{margin-top:var(--e2)}
+.enllac{display:inline-flex;align-items:center;gap:var(--e1);min-height:44px;font-size:15px;font-weight:600;color:var(--tinta);text-underline-offset:3px}
+
+/* ------------------------------------------------------------ els paquets */
+.esgraons{display:block;width:100%;height:auto;margin-top:var(--e4);overflow:visible}
+.esgraons text{font-family:var(--font);font-size:11px;font-weight:600;letter-spacing:.1em;fill:var(--tinta-2)}
+.taula li{display:flex;justify-content:space-between;align-items:baseline;gap:var(--e3);min-height:52px;padding:var(--e3) 0;border-bottom:1px solid var(--fil);font-size:15px}
+.taula b{font-size:20px;font-weight:500;letter-spacing:-.01em}
+.caprici{margin-top:var(--e4);padding:var(--e4) 0;border-bottom:1px solid var(--fil)}
+.caprici b{display:block;font-size:22px;font-weight:600;letter-spacing:-.01em;margin-top:4px}
+.caprici p{margin-top:4px}
+
+/* ------------------------------------------------------------ les pastilles */
+.past-avui{margin-top:var(--e4)}
+.past-avui b{display:block;font-size:22px;font-weight:600;letter-spacing:-.01em}
+.past-avui p{margin-top:4px}
+.preses{display:grid;grid-template-columns:repeat(3,1fr);margin-top:var(--e4);border-top:1px solid var(--fil)}
+.presa{display:flex;width:100%;align-items:center;gap:10px;min-height:56px;padding:0 var(--e2) 0 0;border-bottom:1px solid var(--fil);text-align:left;
+  font-size:17px;font-weight:500;transition:background-color 140ms ease}
+.presa .q{width:18px;height:18px;flex:none;border:1.5px solid var(--t2);transition:background-color 140ms ease,border-color 140ms ease}
+.presa[aria-pressed="true"]{color:var(--tinta-2)}
+.presa[aria-pressed="true"] .q{background:var(--t4);border-color:var(--t4)}
+.presa[data-propera="1"]{font-weight:600}
+.presa[data-propera="1"] .q{border-color:var(--t4);border-width:2px}
+.presa:active{background:var(--camp-alt)}
+.past-nota{margin-top:var(--e3)}
+.past-nota:empty{display:none}
+.avisos-linia{display:flex;align-items:center;gap:var(--e3);flex-wrap:wrap;margin-top:var(--e3)}
+.avisos-linia .enllac{min-height:32px;text-decoration:underline}
+.avisos-aj{margin-top:var(--e7)}
+.btn:disabled{border-color:var(--fil);color:var(--tinta-3);background:transparent;cursor:not-allowed}
+.btn[data-carregant="1"]{pointer-events:none;opacity:.6}
+
+/* ------------------------------------------------------- el full que puja */
+.fosc{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center;background:rgba(13,25,30,.44);
+  opacity:0;pointer-events:none;transition:opacity 200ms ease}
+.fosc[data-obert="1"]{opacity:1;pointer-events:auto}
+.modal{width:100%;max-height:92dvh;overflow-y:auto;background:var(--camp);border-top:1px solid var(--tinta);
+  padding:0 var(--e4) calc(var(--e5) + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform 300ms var(--calaix)}
+.fosc[data-obert="1"] .modal{transform:none}
+.modal-cap{position:sticky;top:0;background:var(--camp);display:flex;align-items:center;justify-content:space-between;gap:var(--e3);
+  padding:var(--e4) 0 var(--e3);margin-bottom:var(--e4);border-bottom:1px solid var(--fil-fort);z-index:1}
+.modal-cap h2{font-size:20px;letter-spacing:-.01em;text-transform:none}
+@media (min-width:640px){.fosc{align-items:center;padding:var(--e5)}.modal{max-width:540px;border:1px solid var(--tinta)}}
+.formulari{display:grid;gap:22px}
+.camp{display:grid;gap:var(--e2)}
+.camp>label{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+.camp-fila{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--e3)}
+.entrada{width:100%;min-height:48px;padding:10px 12px;border:1px solid var(--fil);border-radius:0;background:var(--blanc);font-size:17px;-webkit-appearance:none;appearance:none}
+.entrada:focus{outline:none;border-color:var(--t4);box-shadow:inset 0 0 0 1px var(--t4)}
+.camp-mal{font-size:14px;font-weight:600;color:var(--ocre)}
+.camp-mal::before{content:"— "}
+
+.brindis{position:fixed;left:50%;bottom:calc(var(--e4) + env(safe-area-inset-bottom));z-index:60;min-height:48px;padding:var(--e3) var(--e4);
+  background:var(--tinta);color:var(--blanc);font-size:15px;font-weight:500;transform:translate(-50%,16px);opacity:0;pointer-events:none;
+  transition:transform 260ms var(--sortida),opacity 200ms ease}
+.brindis[data-visible="1"]{transform:translate(-50%,0);opacity:1}
+
+@media (min-width:900px){
+  .capcalera,.pagina{max-width:1080px;padding-left:28px;padding-right:28px}
+  .cos-pag{display:grid;grid-template-columns:1fr 1fr;gap:0 48px;align-items:start}
+  .col-a{position:sticky;top:var(--e4)}
+}
+</style>
+</head>
+<body>
+
+<header class="capcalera">
+  <div class="cap-fila">
+    <span class="marca"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Lliure"><rect width="512" height="512" fill="#e8eef0"/><g stroke="#086674" stroke-width="2" opacity=".14"><path d="M0 128h512M0 256h512M0 384h512M128 0v512M256 0v512M384 0v512"/></g><g fill="none" stroke-linejoin="round" stroke-linecap="round"><path d="M128 96V416H416" stroke="#bcced4" stroke-width="8"/><path d="M156 128V388H388" stroke="#7ab5c1" stroke-width="9"/><path d="M184 160V360H360" stroke="#1c8496" stroke-width="10"/><path d="M212 192V332H332" stroke="#054a57" stroke-width="18"/></g></svg><span class="gravat tinta">Lliure</span></span>
+    <button class="btn" id="obrirAjust" type="button">Ajustos</button>
+  </div>
+  <div class="cap-titol">
+    <h1>Sense fumar</h1>
+    <p id="desDe">—</p>
+  </div>
+</header>
+
+<main class="pagina">
+ <div class="cos-pag">
+  <div class="col-a">
+    <section class="veredicte" aria-live="off">
+      <span class="gravat" id="catDia">DIA 001</span>
+      <div class="dies-gran"><span class="dies-n" id="dies">0</span><span class="dies-u" id="diesU">dies</span></div>
+      <p class="rellotge">i <b id="h">00</b> h <b id="m">00</b> min <b id="s">00</b> s</p>
+      <svg class="linia" id="linia" viewBox="0 0 360 96" role="img" aria-label="On ets dins de les fites del cos"></svg>
+      <div class="linia-peu"><span class="gravat">20 min</span><span class="gravat">15 anys</span></div>
+    </section>
+
+    <div class="xifres">
+      <div class="xifra">
+        <span class="gravat">No gastat</span>
+        <div class="xifra-gran"><span class="xifra-n" id="diners">0</span><span class="xifra-u">€</span></div>
+        <span class="xifra-sota" id="dinersSota">fins avui</span>
+      </div>
+      <div class="xifra">
+        <span class="gravat">Paquets</span>
+        <div class="xifra-gran"><span class="xifra-n" id="paquets">0</span><span class="xifra-u">no comprats</span></div>
+        <span class="xifra-sota" id="paquetSota">—</span>
+      </div>
+      <div class="xifra">
+        <span class="gravat">Cada dia</span>
+        <div class="xifra-gran"><span class="xifra-n" id="perDia">0</span><span class="xifra-u">€</span></div>
+        <span class="xifra-sota" id="perDiaSota">—</span>
+      </div>
+      <div class="xifra">
+        <span class="gravat">En un any</span>
+        <div class="xifra-gran"><span class="xifra-n" id="any">0</span><span class="xifra-u">€</span></div>
+        <span class="xifra-sota">si continues així</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-b">
+    <section class="seccio" id="pastilles" hidden>
+      <div class="seccio-cap"><h2>Les pastilles</h2><span class="gravat" id="pastCat">D00 / 25</span></div>
+      <div class="past-avui">
+        <b id="pastFase">—</b>
+        <p class="menut" id="pastPauta">—</p>
+      </div>
+      <ul class="preses" id="preses"></ul>
+      <p class="menut past-nota" id="pastNota"></p>
+      <p class="avisos-linia"><span class="gravat" id="avisosEstat">Avisos · no activats</span> <button class="enllac" id="avisosObre" type="button">Activa'ls</button></p>
+      <ul class="fites" id="fases" hidden></ul>
+      <button class="enllac mes" id="mesFases" type="button">La pauta sencera</button>
+    </section>
+
+    <section class="seccio">
+      <div class="seccio-cap"><h2>Al teu cos</h2><span class="gravat" id="cosCat">F00</span></div>
+      <blockquote class="cita" style="margin-left:0;margin-right:0">
+        <p id="ara">—</p>
+        <footer class="menut" id="seguent">—</footer>
+      </blockquote>
+      <ul class="fites" id="fites"></ul>
+      <button class="enllac mes" id="mesFites" type="button">Totes les fites</button>
+    </section>
+
+    <section class="seccio">
+      <div class="seccio-cap"><h2>Els paquets</h2><span class="gravat" id="pCat">P00</span></div>
+      <svg class="esgraons" id="esgraons" viewBox="0 0 360 120" role="img" aria-label="Diners acumulats, paquet a paquet"></svg>
+      <div class="caprici" id="caprici" hidden>
+        <span class="gravat">El caprici</span>
+        <b id="capNom"></b>
+        <p class="menut" id="capTxt"></p>
+      </div>
+      <ul class="taula" id="proj" style="margin-top:var(--e2)"></ul>
+    </section>
+  </div>
+ </div>
+</main>
+
+<div class="fosc" id="fosc" data-obert="0">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="ajTitol">
+    <div class="modal-cap">
+      <h2 id="ajTitol">Ajustos</h2>
+      <button class="btn btn-icona" id="tancar" type="button" aria-label="Tanca">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <p class="menut" id="ajIntro" style="margin-bottom:var(--e5)">Només cal posar-ho una vegada.</p>
+    <div class="formulari">
+      <div class="camp">
+        <label for="inData">L'última cigarreta</label>
+        <input class="entrada" type="datetime-local" id="inData">
+      </div>
+      <div class="camp-fila">
+        <div class="camp">
+          <label for="inPreu">Preu paquet · €</label>
+          <input class="entrada" type="number" id="inPreu" step="0.01" min="0" inputmode="decimal">
+        </div>
+        <div class="camp">
+          <label for="inDies">Et durava · dies</label>
+          <input class="entrada" type="number" id="inDies" step="0.5" min="0.5" inputmode="decimal">
+        </div>
+      </div>
+      <p class="menut" style="margin-top:-10px">Tabac de liar: 6,20 € cada 5–6 dies, és a dir 5,5 de mitjana.</p>
+      <div class="camp-fila">
+        <div class="camp">
+          <label for="inTracInici">Pastilles · dia 1</label>
+          <input class="entrada" type="date" id="inTracInici">
+        </div>
+        <div class="camp">
+          <label for="inTracHora">Primera presa</label>
+          <input class="entrada" type="time" id="inTracHora">
+        </div>
+      </div>
+      <p class="menut" style="margin-top:-10px">L'horari de cada dia es calcula a partir de la primera presa. Deixa el dia en blanc per amagar les pastilles.</p>
+      <div class="camp">
+        <label for="inObjNom">Un caprici · opcional</label>
+        <input class="entrada" type="text" id="inObjNom" placeholder="Un sopar, unes vambes…">
+      </div>
+      <div class="camp">
+        <label for="inObjPreu">Quant costa · €</label>
+        <input class="entrada" type="number" id="inObjPreu" step="1" min="0" inputmode="decimal" placeholder="80">
+      </div>
+      <p class="camp-mal" id="error" hidden></p>
+      <button class="btn btn-primari btn-ple" id="desar" type="button">Desa</button>
+    </div>
+
+    <div class="avisos-aj" id="avisosAj">
+      <div class="seccio-cap"><h2>Avisos al mòbil</h2><span class="gravat" id="avisosAjEstat">—</span></div>
+      <p class="menut" style="margin:var(--e3) 0 var(--e4)">T'avisa quan et toca cada pastilla, encara que l'app estigui tancada. Ho envia el teu Apps Script «Lliure», com fa Nutrició.</p>
+      <div class="formulari">
+        <div class="camp">
+          <label for="inUrl">Adreça del servidor · acaba en /exec</label>
+          <input class="entrada" type="url" id="inUrl" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="camp">
+          <label for="inClau">Clau d'accés</label>
+          <input class="entrada" type="text" id="inClau" autocomplete="off" spellcheck="false">
+        </div>
+        <p class="camp-mal" id="avisosError" hidden></p>
+        <button class="btn btn-primari btn-ple" id="avisosActiva" type="button">Activa els avisos</button>
+        <button class="btn btn-ple" id="avisosProva" type="button" hidden>Envia'n un de prova</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="brindis" id="brindis" role="status"></div>
+
+<script>
+const CLAU = 'lliure-de-fum-v1';
+const MIN = 60e3, H = 60*MIN, D = 24*H;
+const DIES_CURTS = ['dg','dl','dt','dc','dj','dv','ds'];
+const MESOS = ['gen','febr','març','abr','maig','juny','jul','ag','set','oct','nov','des'];
+
+const FITES = [
+  {t:20*MIN,   e:'20 min',     txt:'El pols i la pressió tornen a la normalitat.'},
+  {t:8*H,      e:'8 hores',    txt:'El monòxid de carboni a la sang ha baixat a la meitat. L\'oxigen torna a lloc.'},
+  {t:D,        e:'1 dia',      txt:'El monòxid de carboni ja és fora del cos.'},
+  {t:2*D,      e:'2 dies',     txt:'La nicotina ja no hi és. El gust i l\'olfacte es desperten.'},
+  {t:3*D,      e:'3 dies',     txt:'Els bronquis es relaxen: respires amb menys esforç.'},
+  {t:14*D,     e:'2 setmanes', txt:'La circulació millora. Pujar escales costa menys.'},
+  {t:30*D,     e:'1 mes',      txt:'Els pulmons es netegen: baixen la tos i el cansament.'},
+  {t:90*D,     e:'3 mesos',    txt:'La capacitat pulmonar ha millorat de manera clara.'},
+  {t:270*D,    e:'9 mesos',    txt:'Molta menys tos i falta d\'aire. Els pulmons es defensen millor.'},
+  {t:365*D,    e:'1 any',      txt:'El risc de malaltia coronària és la meitat que el d\'un fumador.'},
+  {t:5*365*D,  e:'5 anys',     txt:'El risc d\'ictus s\'acosta al de qui no ha fumat mai.'},
+  {t:10*365*D, e:'10 anys',    txt:'El risc de càncer de pulmó és la meitat que el d\'un fumador.'},
+  {t:15*365*D, e:'15 anys',    txt:'El risc coronari és el de qui no ha fumat mai.'},
+];
+
+const $ = id => document.getElementById(id);
+const num = (n, dec=0) => n.toLocaleString('ca-ES',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+const pad = (n, l=2) => String(n).padStart(l,'0');
+const dataCurta = d => DIES_CURTS[d.getDay()] + ' ' + d.getDate() + ' ' + MESOS[d.getMonth()];
+const cat = (lletra, n) => lletra + pad(n);
+function temps(ms){
+  if(ms < H) return Math.max(1, Math.ceil(ms/MIN)) + ' min';
+  if(ms < D){ const h = Math.floor(ms/H), m = Math.ceil((ms%H)/MIN); return h + ' h' + (m ? ' ' + m + ' min' : ''); }
+  const d = Math.ceil(ms/D); return d + (d === 1 ? ' dia' : ' dies');
+}
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, at) => { const e = document.createElementNS(NS, tag); for(const k in at) e.setAttribute(k, at[k]); return e; };
+
+/* La pauta de les pastilles: 25 dies, de 6 a 2 comprimits. */
+const DIES_TRAC = 25;
+const FASES = [
+  {de:1,  a:3,  n:6, cada:2,   txt:'1 comprimit cada 2 hores'},
+  {de:4,  a:12, n:5, cada:2.5, txt:'1 comprimit cada 2,5 hores'},
+  {de:13, a:16, n:4, cada:3,   txt:'1 comprimit cada 3 hores'},
+  {de:17, a:20, n:3, cada:5,   txt:'1 comprimit cada 5 hores'},
+  {de:21, a:25, n:2, cada:0,   txt:'1 o 2 comprimits al dia'},
+];
+const CLAU_PRESES = 'lliure-preses-v1';
+const TRAC_PER_DEFECTE = {tracInici:'', tracHora:'08:00'};
+
+let cfg = null;
+try { cfg = JSON.parse(localStorage.getItem(CLAU)); } catch(e) {}
+if(cfg && cfg.tracInici === undefined){ Object.assign(cfg, TRAC_PER_DEFECTE); localStorage.setItem(CLAU, JSON.stringify(cfg)); }
+let preses = {};
+try { preses = JSON.parse(localStorage.getItem(CLAU_PRESES)) || {}; } catch(e) {}
+let totesFites = false, totesFases = false, ultimMinut = -1;
+
+const isoLocal = d => d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+const migdia = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m-1, d, 12); };
+const hhmm = min => pad(Math.floor(min/60) % 24) + ':' + pad(Math.round(min % 60));
+
+/* ---------------------------------------------------------- LES PASTILLES
+   Quin dia del tractament és avui, quantes en toquen i a quina hora. Passat
+   el dia 25, la secció desapareix sola. */
+function pintaPastilles(){
+  const sec = $('pastilles');
+  if(!cfg.tracInici){ sec.hidden = true; return; }
+  const ara = new Date();
+  const dia = Math.round((migdia(isoLocal(ara)) - migdia(cfg.tracInici)) / D) + 1;
+  if(dia < 1 || dia > DIES_TRAC){ sec.hidden = true; return; }
+  sec.hidden = false;
+  const fi = FASES.findIndex(f => dia >= f.de && dia <= f.a), f = FASES[fi];
+  $('pastCat').textContent = 'D' + pad(dia) + ' / ' + DIES_TRAC;
+  $('pastFase').textContent = (f.cada ? f.n : 'Fins a ' + f.n) + ' comprimits avui';
+  $('pastPauta').textContent = f.txt + ' · dies ' + f.de + '–' + f.a + (dia === DIES_TRAC ? ' · avui és l\'últim dia' : '');
+
+  const clau = isoLocal(ara), fets = preses[clau] || [];
+  const [hh, mm] = (cfg.tracHora || '08:00').split(':').map(Number);
+  const ini = hh*60 + mm, minAra = ara.getHours()*60 + ara.getMinutes();
+  const hores = f.cada ? Array.from({length:f.n}, (_, k) => ini + k*f.cada*60) : [null, null];
+  const propera = hores.findIndex((h, k) => !fets.includes(k));
+  $('preses').innerHTML = hores.map((h, k) => {
+    const nom = h === null ? (k === 0 ? 'Primera' : 'Segona') : hhmm(h);
+    return `<li><button class="presa" type="button" data-k="${k}" aria-pressed="${fets.includes(k)}" ${k === propera ? 'data-propera="1"' : ''}><span class="q" aria-hidden="true"></span>${nom}</button></li>`;
+  }).join('');
+  let nota = '';
+  if(propera < 0) nota = 'Totes les d\'avui, preses.';
+  else if(hores[propera] !== null){
+    const falta = hores[propera] - minAra;
+    nota = falta > 0 ? 'La propera, a les ' + hhmm(hores[propera]) + ': d\'aquí a ' + temps(falta*MIN) + '.' : 'Ara toca la de les ' + hhmm(hores[propera]) + '.';
+  }
+  $('pastNota').textContent = nota;
+
+  const inici = migdia(cfg.tracInici);
+  $('fases').hidden = !totesFases;
+  $('fases').innerHTML = FASES.map((g, i) => {
+    const e = i < fi ? 'fet' : i === fi ? 'ara' : 've';
+    const d0 = new Date(inici.getTime() + (g.de-1)*D), d1 = new Date(inici.getTime() + (g.a-1)*D);
+    return `<li class="fila-c" data-e="${e}"><span class="cat">${cat('T', i+1)}<b>${g.cada ? g.n : '1–2'} al dia</b></span><span class="v">Dies ${g.de}–${g.a}. ${g.txt}.</span><span class="q">${dataCurta(d0).replace(/^\S+ /, '')} – ${dataCurta(d1).replace(/^\S+ /, '')}</span></li>`;
+  }).join('');
+  $('mesFases').textContent = totesFases ? 'Amaga la pauta' : 'La pauta sencera · fins al ' + dataCurta(new Date(inici.getTime() + (DIES_TRAC-1)*D));
+}
+$('preses').addEventListener('click', e => {
+  const b = e.target.closest('.presa'); if(!b) return;
+  const clau = isoLocal(new Date()), k = +b.dataset.k, l = preses[clau] || [];
+  preses[clau] = l.includes(k) ? l.filter(x => x !== k) : [...l, k];
+  localStorage.setItem(CLAU_PRESES, JSON.stringify(preses));
+  Avisos.presa(clau, k, preses[clau].includes(k));
+  pintaPastilles();
+});
+$('mesFases').onclick = () => { totesFases = !totesFases; pintaPastilles(); };
+
+
+/* ---------------------------------------------------------- LA LÍNIA
+   Eix logarítmic de 20 min a 15 anys. Cada fita és una marca vertical amb
+   el seu número de catàleg; les passades, fosques i altes; les que vénen,
+   clares i baixes. L'ARA és una posició amb el seu filet. */
+function pintaLinia(ms){
+  const svg = $('linia'); svg.textContent = '';
+  const W = 360, X0 = 6, X1 = W - 6, Y = 70;
+  const lo = Math.log(FITES[0].t), hi = Math.log(FITES[FITES.length-1].t);
+  const x = t => X0 + (Math.log(Math.min(Math.max(t, FITES[0].t), FITES[FITES.length-1].t)) - lo) / (hi - lo) * (X1 - X0);
+  const xa = ms <= 0 ? X0 : x(ms);
+  svg.appendChild(el('line', {x1:X0, y1:Y, x2:X1, y2:Y, stroke:'#9fb4bb', 'stroke-width':1}));
+  svg.appendChild(el('line', {x1:X0, y1:Y, x2:xa, y2:Y, stroke:'#054a57', 'stroke-width':3, 'stroke-linecap':'square'}));
+  FITES.forEach((f, i) => {
+    const fet = ms >= f.t, xi = x(f.t);
+    svg.appendChild(el('line', {x1:xi, y1:Y, x2:xi, y2: fet ? Y-22 : Y-10,
+      stroke: fet ? '#054a57' : '#bcced4', 'stroke-width': fet ? 1.6 : 1.2}));
+    if(i % 3 === 0 || i === FITES.length-1){
+      const tx = el('text', {x:xi, y:Y+18, 'text-anchor': i === 0 ? 'start' : (i === FITES.length-1 ? 'end' : 'middle')});
+      tx.textContent = cat('F', i+1); svg.appendChild(tx);
+    }
+  });
+  // l'ara
+  svg.appendChild(el('line', {x1:xa, y1:Y+6, x2:xa, y2:14, stroke:'#054a57', 'stroke-width':1}));
+  svg.appendChild(el('rect', {x:xa-4, y:Y-4, width:8, height:8, fill:'#054a57'}));
+  const ta = el('text', {x:xa, y:9, class:'ara-t', 'text-anchor': xa < 30 ? 'start' : (xa > W-30 ? 'end' : 'middle')});
+  ta.textContent = 'ARA'; svg.appendChild(ta);
+}
+
+/* ---------------------------------------------------------- ELS ESGRAONS
+   Els diners acumulats, paquet a paquet: cada esglaó és un paquet que no
+   has comprat. Els fets, en tinta; els que vénen, en traç clar. */
+function pintaEsgraons(ms){
+  const svg = $('esgraons'); svg.textContent = '';
+  const W = 360, Hh = 120, X0 = 0, X1 = W, Y0 = 100, Y1 = 14;
+  const dies = ms / D, dp = cfg.diesPaquet;
+  const fets = Math.floor(dies / dp);
+  const total = Math.max(6, fets + 3);
+  const xMax = total * dp;
+  const x = d => X0 + d / xMax * (X1 - X0);
+  const y = p => Y0 - p / total * (Y0 - Y1);
+  svg.appendChild(el('line', {x1:X0, y1:Y0, x2:X1, y2:Y0, stroke:'#0d191e', 'stroke-width':1}));
+  // passat
+  let d = 'M' + x(0) + ' ' + y(0);
+  for(let p = 1; p <= fets; p++){ d += ' H' + x(p*dp) + ' V' + y(p); }
+  d += ' H' + x(dies);
+  svg.appendChild(el('path', {d, fill:'none', stroke:'#054a57', 'stroke-width':2, 'stroke-linejoin':'miter'}));
+  // futur
+  let f = 'M' + x(dies) + ' ' + y(fets);
+  for(let p = fets+1; p <= total; p++){ f += ' H' + x(p*dp) + ' V' + y(p); }
+  svg.appendChild(el('path', {d:f, fill:'none', stroke:'#bcced4', 'stroke-width':1.4, 'stroke-dasharray':'3 3'}));
+  // ara
+  svg.appendChild(el('rect', {x:x(dies)-3.5, y:y(fets)-3.5, width:7, height:7, fill:'#054a57'}));
+  // rètols de paquet
+  for(let p = 1; p <= total; p++){
+    if(total > 12 && p % Math.ceil(total/8) !== 0 && p !== fets) continue;
+    const t = el('text', {x:x(p*dp), y:Y0+15, 'text-anchor':'end'});
+    t.textContent = cat('P', p);
+    if(p > fets) t.setAttribute('fill', '#5b717a');
+    svg.appendChild(t);
+  }
+  const tv = el('text', {x:x(total*dp), y:y(total)-6, 'text-anchor':'end'});
+  tv.textContent = num(total * cfg.preu, 0) + ' €'; svg.appendChild(tv);
+}
+
+function pinta(){
+  if(!cfg) return;
+  const inici = new Date(cfg.data), ms = Math.max(0, Date.now() - inici.getTime());
+  const dies = Math.floor(ms / D), perDia = cfg.preu / cfg.diesPaquet, estalvi = perDia * ms / D;
+
+  $('desDe').textContent = 'Des de ' + dataCurta(inici) + ', a les ' + pad(inici.getHours()) + ':' + pad(inici.getMinutes());
+  $('catDia').textContent = 'DIA ' + pad(dies+1, 3) + ' · ' + dataCurta(new Date()) + ' · avui';
+  $('dies').textContent = num(dies);
+  $('diesU').textContent = dies === 1 ? 'dia' : 'dies';
+  $('h').textContent = pad(Math.floor(ms % D / H));
+  $('m').textContent = pad(Math.floor(ms % H / MIN));
+  $('s').textContent = pad(Math.floor(ms % MIN / 1000));
+
+  const ent = Math.floor(estalvi), cts = Math.floor((estalvi - ent) * 100);
+  $('diners').innerHTML = num(ent) + '<small>,' + pad(cts) + '</small>';
+  $('dinersSota').textContent = 'fins avui';
+  const paq = ms / D / cfg.diesPaquet, paqF = Math.floor(paq);
+  $('paquets').textContent = num(paqF);
+  $('paquetSota').textContent = 'el següent d\'aquí a ' + temps((paqF + 1 - paq) * cfg.diesPaquet * D);
+  $('perDia').innerHTML = num(Math.floor(perDia)) + '<small>,' + pad(Math.round((perDia % 1) * 100)) + '</small>';
+  $('perDiaSota').textContent = num(cfg.preu, 2) + ' € cada ' + num(cfg.diesPaquet, 1).replace(/,0$/, '') + ' dies';
+  $('any').textContent = num(perDia * 365);
+
+  // el cos
+  let idx = -1; FITES.forEach((f, i) => { if(ms >= f.t) idx = i; });
+  const seg = FITES[idx+1];
+  $('cosCat').textContent = idx < 0 ? 'F00' : cat('F', idx+1) + ' / ' + FITES.length;
+  $('ara').textContent = idx < 0 ? 'Acabes de començar. D\'aquí a una estona el cos ja ho nota.' : FITES[idx].txt;
+  $('seguent').textContent = seg ? 'Següent, ' + cat('F', idx+2) + ' · ' + seg.e + ': d\'aquí a ' + temps(seg.t - ms) + '.' : 'Totes les fites, fetes.';
+  pintaLinia(ms);
+
+  const llista = FITES.map((f, i) => ({f, i, e: ms >= f.t ? (i === idx ? 'ara' : 'fet') : 've'}));
+  const vis = totesFites ? llista : llista.filter(r => Math.abs(r.i - idx) <= 1 || (idx < 0 && r.i < 2));
+  $('fites').innerHTML = vis.map(({f, i, e}) => {
+    const q = e === 've' ? 'd\'aquí a ' + temps(f.t - ms) : dataCurta(new Date(inici.getTime() + f.t));
+    return `<li class="fila-c" data-e="${e}"><span class="cat">${cat('F', i+1)}<b>${f.e}</b></span><span class="v">${f.txt}</span><span class="q">${q}</span></li>`;
+  }).join('');
+  $('mesFites').textContent = totesFites ? 'Només les d\'ara' : 'Totes les fites · ' + FITES.length;
+
+  // pastilles (un cop per minut n'hi ha prou)
+  const minut = Math.floor(Date.now()/MIN);
+  if(minut !== ultimMinut){ ultimMinut = minut; pintaPastilles(); }
+
+  // paquets
+  $('pCat').textContent = cat('P', paqF);
+  pintaEsgraons(ms);
+  if(cfg.objNom && cfg.objPreu > 0){
+    $('caprici').hidden = false;
+    $('capNom').textContent = cfg.objNom + ' · ' + num(cfg.objPreu, 0) + ' €';
+    if(estalvi >= cfg.objPreu) $('capTxt').textContent = 'Ja el tens pagat amb el que no t\'has fumat.';
+    else {
+      const quan = new Date(inici.getTime() + cfg.objPreu / perDia * D);
+      $('capTxt').textContent = 'Te\'n falten ' + num(cfg.objPreu - estalvi, 2) + ' €. Serà teu el ' + dataCurta(quan) + '.';
+    }
+  } else $('caprici').hidden = true;
+  $('proj').innerHTML = [[7,'D\'aquí a una setmana'],[30,'D\'aquí a un mes'],[182,'D\'aquí a sis mesos'],[1825,'D\'aquí a cinc anys']]
+    .map(([d, n]) => `<li><span>${n}</span><b>${num(estalvi + perDia*d, 0)} €</b></li>`).join('');
+}
+
+/* ---------------------------------------------------------- AJUSTOS */
+const aLocal = d => new Date(d - d.getTimezoneOffset()*MIN).toISOString().slice(0,16);
+function obre(primer){
+  const c = cfg || {data: new Date().toISOString(), preu: 6.20, diesPaquet: 5.5, objNom: '', objPreu: '', ...TRAC_PER_DEFECTE};
+  $('inData').value = aLocal(new Date(c.data));
+  $('inPreu').value = c.preu; $('inDies').value = c.diesPaquet;
+  $('inTracInici').value = c.tracInici || ''; $('inTracHora').value = c.tracHora || '08:00';
+  $('inObjNom').value = c.objNom || ''; $('inObjPreu').value = c.objPreu || '';
+  $('ajTitol').textContent = primer ? 'Comencem' : 'Ajustos';
+  $('ajIntro').hidden = !primer; $('tancar').hidden = primer; $('error').hidden = true;
+  Avisos.omple();
+  $('fosc').dataset.obert = '1';
+}
+const tanca = () => { $('fosc').dataset.obert = '0'; };
+const llegeix = id => parseFloat(String($(id).value).replace(',', '.'));
+function brindis(t){ const b = $('brindis'); b.textContent = t; b.dataset.visible = '1'; clearTimeout(b._t); b._t = setTimeout(() => b.dataset.visible = '0', 2200); }
+
+$('desar').onclick = () => {
+  const data = $('inData').value, preu = llegeix('inPreu'), dp = llegeix('inDies');
+  const mal = !data ? 'Falta la data de l\'última cigarreta.' : !(preu > 0) ? 'Falta el preu del paquet.' : !(dp > 0) ? 'Falten els dies que et durava.' : '';
+  if(mal){ $('error').textContent = mal; $('error').hidden = false; return; }
+  cfg = {data: new Date(data).toISOString(), preu, diesPaquet: dp, objNom: $('inObjNom').value.trim(), objPreu: llegeix('inObjPreu') || 0,
+    tracInici: $('inTracInici').value || '', tracHora: $('inTracHora').value || '08:00'};
+  ultimMinut = -1;
+  localStorage.setItem(CLAU, JSON.stringify(cfg));
+  tanca(); pinta(); brindis('Desat.');
+  Avisos.pauta();
+};
+$('tancar').onclick = tanca;
+$('fosc').onclick = e => { if(e.target === $('fosc') && cfg) tanca(); };
+$('obrirAjust').onclick = () => obre(false);
+$('mesFites').onclick = () => { totesFites = !totesFites; pinta(); };
+
+
+/* ---------------------------------------------------------- ELS AVISOS
+   El mateix camí que Nutrició: Firebase dona una fitxa per a aquest mòbil,
+   l'app la registra al seu Apps Script amb la pauta, i el servidor, que mira
+   cada minut, envia l'avís quan toca. L'app tancada no fa res: ho fa tot ell.
+   Si la pauta canvia o marques una presa, se li diu, perquè no t'avisi d'una
+   que ja t'has pres. */
+const Avisos = (function(){
+  const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
+  const CLAU_SRV = 'lliure-servidor-v1', CLAU_AV = 'lliure-avisos-v1';
+  let fbConfig = null, missatgeria = null, carregant = null;
+  const srv = () => { try { return JSON.parse(localStorage.getItem(CLAU_SRV)) || {}; } catch(e) { return {}; } };
+  const av = () => { try { return JSON.parse(localStorage.getItem(CLAU_AV)) || {}; } catch(e) { return {}; } };
+  const desaAv = o => localStorage.setItem(CLAU_AV, JSON.stringify(Object.assign(av(), o)));
+  const potSerHi = () => 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window && window.isSecureContext;
+  const actius = () => potSerHi() && Notification.permission === 'granted' && !!av().fitxa && !!srv().url;
+
+  function crida(accio, params){
+    const s = srv();
+    if(!s.url || !s.clau) return Promise.reject(new Error('Falten l\'adreça del servidor i la clau.'));
+    return fetch(s.url, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({clau: s.clau, accio, params: params || {}})})
+      .then(r => { if(!r.ok) throw new Error('El servidor ha respost ' + r.status + '.'); return r.json(); })
+      .then(r => { if(!r.ok) throw new Error(r.error || 'El servidor no ha dit res.'); return r.dades; });
+  }
+  const guio = url => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = url; s.onload = ok; s.onerror = () => ko(new Error('No s\'ha pogut carregar Firebase.')); document.head.appendChild(s); });
+  function prepara(){
+    if(carregant) return carregant;
+    carregant = fetch('firebase.config.json', {cache:'no-cache'})
+      .then(r => { if(!r.ok) throw new Error('Els avisos només funcionen des de la pàgina publicada.'); return r.json(); })
+      .then(c => { fbConfig = c; return Promise.all([guio(SDK + 'firebase-app-compat.js'), guio(SDK + 'firebase-messaging-compat.js')]); })
+      .then(() => {
+        firebase.initializeApp({apiKey: fbConfig.apiKey, projectId: fbConfig.projectId, messagingSenderId: fbConfig.messagingSenderId, appId: fbConfig.appId});
+        missatgeria = firebase.messaging();
+        missatgeria.onMessage(m => { const d = (m && m.data) || {}; brindis((d.titol ? d.titol + ': ' : '') + (d.cos || '')); });
+      });
+    carregant.catch(() => { carregant = null; });
+    return carregant;
+  }
+  function fitxa(){
+    return navigator.serviceWorker.register('firebase-messaging-sw.js', {scope: './fcm/'})
+      .then(reg => { reg.update().catch(() => {}); return prepara().then(() => reg); })
+      .then(reg => missatgeria.getToken({vapidKey: fbConfig.vapidKey, serviceWorkerRegistration: reg}));
+  }
+  const pautaActual = () => cfg ? {tracInici: cfg.tracInici || '', tracHora: cfg.tracHora || '08:00'} : {};
+  function nomMobil(){ const ua = navigator.userAgent; return (/Android/i.test(ua) ? 'Android' : /iPhone|iPad/i.test(ua) ? 'iPhone' : 'Ordinador') + (matchMedia('(display-mode: standalone)').matches ? ' · app' : ' · navegador'); }
+
+  function activa(){
+    const url = $('inUrl').value.trim(), clau = $('inClau').value.trim();
+    if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)) return Promise.reject(new Error('L\'adreça ha de ser la del desplegament i acabar en /exec.'));
+    if(!clau) return Promise.reject(new Error('Falta la clau d\'accés.'));
+    if(!potSerHi()) return Promise.reject(new Error(!window.isSecureContext ? 'Els avisos només funcionen des de la pàgina publicada, no des del fitxer.' : 'Aquest navegador no pot rebre avisos.'));
+    localStorage.setItem(CLAU_SRV, JSON.stringify({url, clau}));
+    return Notification.requestPermission()
+      .then(p => { if(p !== 'granted') throw new Error(p === 'denied' ? 'Has denegat els avisos. Per tornar-hi: cadenat de la barra d\'adreces → Notificacions → Permet.' : 'No has respost a la petició de permís.'); })
+      .then(fitxa)
+      .then(f => { if(!f) throw new Error('Firebase no ha donat cap fitxa per a aquest mòbil.');
+        return crida('registra', Object.assign({fitxa: f, nom: nomMobil()}, pautaActual())).then(() => desaAv({fitxa: f})); });
+  }
+  /* Cada cop que obres l'app: la fitxa d'FCM es renova sola de tant en tant,
+     i si la del servidor queda vella els avisos deixen d'arribar sense dir res. */
+  function actualitza(){
+    if(!actius()) return;
+    fitxa().then(f => { if(!f || f === av().fitxa) return;
+      return crida('registra', Object.assign({fitxa: f, nom: nomMobil()}, pautaActual())).then(() => desaAv({fitxa: f})); })
+      .catch(() => {});
+  }
+  function pinta(){
+    const on = actius();
+    $('avisosEstat').textContent = on ? 'Avisos · activats' : 'Avisos · no activats';
+    $('avisosObre').hidden = on;
+    $('avisosAjEstat').textContent = on ? 'Activats' : 'No activats';
+    $('avisosActiva').textContent = on ? 'Torna a connectar' : 'Activa els avisos';
+    $('avisosProva').hidden = !on;
+  }
+  function error(e){ $('avisosError').textContent = e.message || String(e); $('avisosError').hidden = false; }
+
+  $('avisosActiva').onclick = () => {
+    $('avisosError').hidden = true; const b = $('avisosActiva'); b.dataset.carregant = '1';
+    activa().then(() => { pinta(); brindis('Avisos activats.'); }).catch(error).finally(() => { delete b.dataset.carregant; });
+  };
+  $('avisosProva').onclick = () => {
+    $('avisosError').hidden = true; const b = $('avisosProva'); b.dataset.carregant = '1';
+    crida('prova').then(r => { if(!r.enviades) throw new Error(r.motiu || 'No s\'ha pogut enviar.'); brindis('Enviat. Hauria d\'arribar ara.'); })
+      .catch(error).finally(() => { delete b.dataset.carregant; });
+  };
+  $('avisosObre').onclick = () => { obre(false); setTimeout(() => $('avisosAj').scrollIntoView({behavior:'smooth'}), 320); };
+
+  setTimeout(actualitza, 5000);
+  pinta();
+  return {
+    omple(){ const s = srv(); $('inUrl').value = s.url || ''; $('inClau').value = s.clau || ''; $('avisosError').hidden = true; pinta(); },
+    pauta(){ if(actius()) crida('pauta', pautaActual()).catch(() => brindis('No he pogut avisar el servidor del canvi.')); },
+    presa(data, k, feta){ if(actius()) crida('presa', {data, k, feta}).catch(() => {}); },
+  };
+})();
+
+if(!cfg) obre(true);
+pinta();
+setInterval(pinta, 1000);
+
+if('serviceWorker' in navigator && window.isSecureContext){
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
