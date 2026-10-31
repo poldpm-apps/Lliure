@@ -438,7 +438,7 @@ function pintaPastilles(){
   const fi = FASES.findIndex(f => dia >= f.de && dia <= f.a), f = FASES[fi];
   $('pastCat').textContent = 'D' + pad(dia) + ' / ' + DIES_TRAC;
   $('pastFase').textContent = (f.cada ? f.n : 'Fins a ' + f.n) + ' comprimits avui';
-  $('pastPauta').textContent = f.txt + ' · dies ' + f.de + '–' + f.a + (dia === DIES_TRAC ? ' · avui és l\'últim dia' : '');
+  $('pastPauta').textContent = f.txt + ' · dies ' + f.de + '–' + f.a + (dia === DIES_TRAC ? ' · avui és l\'últim dia' : (dia === f.de && fi > 0 ? ' · pauta nova des d\'avui' : ''));
 
   const clau = isoLocal(ara), fets = preses[clau] || [];
   const [hh, mm] = (cfg.tracHora || '08:00').split(':').map(Number);

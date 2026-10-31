@@ -38,6 +38,19 @@ var FASES = [
   { de: 21, a: 25, n: 2, cada: 0 }    // 1 o 2 al dia: un sol recordatori
 ];
 
+/* ELS CANVIS DE PAUTA. El primer dia de cada fase, a l'hora de la primera
+   presa i just abans del seu avís, un avís propi que diu què canvia. El dia
+   25 avisa que és l'últim. El cos no porta «Dia N de 25» a posta: així el
+   treballador del mòbil no hi posa el botó «Presa ✓», que aquí no toca. */
+var CANVIS = {
+  4:  { titol: 'Pauta nova', cos: 'Des d\'avui, 5 comprimits: 1 cada 2,5 hores. Fins al dia 12.' },
+  13: { titol: 'Pauta nova', cos: 'Des d\'avui, 4 comprimits: 1 cada 3 hores. Fins al dia 16.' },
+  17: { titol: 'Pauta nova', cos: 'Des d\'avui, 3 comprimits: 1 cada 5 hores. Fins al dia 20.' },
+  21: { titol: 'Pauta nova', cos: 'Des d\'avui, 1 o 2 comprimits al dia, quan calgui. Fins al dia 25.' },
+  25: { titol: 'Últim dia', cos: 'Avui és l\'últim dia de pastilles: 1 o 2 comprimits.' }
+};
+var FINAL = { titol: 'Tractament acabat', cos: 'Ja no hi ha més pastilles. Ets lliure.' };
+
 /* Un avís que arriba tard no serveix: si l'automatisme s'ha encallat més
    d'aquests minuts, aquella presa ja no s'avisa. */
 var MARGE_MIN = 20;
@@ -119,7 +132,7 @@ function aplicaPauta_(estat, params) {
   // Una pauta NOVA vol dir horaris nous: el que constava com a enviat ja no
   // val. Si és la mateixa (l'app la reenvia en renovar la fitxa), no es toca:
   // si no, una presa avisada fa cinc minuts es tornaria a avisar.
-  if (estat.tracInici + '|' + estat.tracHora !== abans) estat.enviades = {};
+  if (estat.tracInici + '|' + estat.tracHora !== abans) { estat.enviades = {}; estat.avisFinal = 0; }
   // Si torna a haver-hi tractament, que torni a haver-hi automatisme.
   if (estat.tracInici && !acabat_(estat)) asseguraAutomatisme_();
 }
@@ -174,6 +187,18 @@ function cadaMinut() {
     var estat = llegeixEstat_();
     if (!estat.tracInici) return;
     if (acabat_(estat)) {
+      // L'últim avís, un sol cop i només si s'acaba de debò ara (no si s'ha
+      // posat una pauta antiga per error).
+      // Arriba el dia 26 a l'hora de la primera presa, no a mitjanit: fins
+      // llavors l'automatisme s'espera.
+      if (estat.fitxa && !estat.avisFinal && diaDeTractament_(estat, new Date()) === DIES_TRAC + 1) {
+        var pi = estat.tracInici.split('-').map(Number), hm = (estat.tracHora || '08:00').split(':').map(Number);
+        var quanFinal = new Date(pi[0], pi[1] - 1, pi[2] + DIES_TRAC, hm[0], hm[1], 0);
+        if (Date.now() < quanFinal.getTime()) return;
+        envia_(estat, FINAL.titol, FINAL.cos, 'canvi');
+        estat.avisFinal = 1;
+        desaEstat_(estat);
+      }
       treuAutomatisme_();
       console.log('Tractament acabat: automatisme esborrat.');
       return;
@@ -185,6 +210,17 @@ function cadaMinut() {
     estat.enviades = estat.enviades || {};
     estat.preses = estat.preses || {};
     var canvis = false;
+
+    // El canvi de pauta va abans que l'avís de la presa del mateix minut.
+    var canvi = CANVIS[dia], primera = presesDelDia_(estat, dia)[0];
+    if (canvi && primera) {
+      var idC = primera.data + '#canvi', tC = primera.quan.getTime();
+      if (ara.getTime() >= tC && ara.getTime() <= tC + MARGE_MIN * MIN && !estat.enviades[idC]) {
+        var rc = envia_(estat, canvi.titol, canvi.cos, 'canvi');
+        estat.enviades[idC] = rc.enviades ? 'ok' : 'error';
+        canvis = true;
+      }
+    }
 
     candidates.forEach(function (p) {
       var id = p.data + '#' + p.k;
