@@ -23,6 +23,7 @@ if (CONFIG && CONFIG.apiKey) {
 
   firebase.messaging().onBackgroundMessage(function (missatge) {
     var d = (missatge && missatge.data) || {};
+    var presa = identificaPresa_(d);
     return self.registration.showNotification(d.titol || 'Lliure', {
       body: d.cos || '',
       // Sense `icon` a posta: Android no dibuixa icones SVG a les
@@ -32,7 +33,10 @@ if (CONFIG && CONFIG.apiKey) {
       // això, set recordatoris deixarien set línies a la barra.
       tag: d.etiqueta || 'lliure',
       renotify: true,
-      data: { url: d.url || './' },
+      data: { url: d.url || './', presa: presa },
+      // EL BOTÓ «PRESA ✓»: marca la pastilla sense obrir l'app.
+      actions: presa ? [{ action: 'presa', title: 'Presa ✓' }] : [],
+      requireInteraction: !!presa,
       vibrate: [60, 40, 60]
     });
   });
@@ -58,8 +62,90 @@ if (CONFIG && CONFIG.apiKey) {
  *
  * L'app tria pantalla amb el hash: el destí bo és «./#escola».
  */
+/* ============================================================ LA PRESA
+ *
+ * Quina presa és aquest avís. El servidor nou ho envia a `data` (dia del
+ * tractament i número); el d'abans només ho deia al text («Pastilla · 3 de
+ * 5», «Dia 4 de 25»), i llavors es dedueix d'allà amb el dia 1 que l'app ha
+ * desat. Així el botó funciona encara que l'Apps Script no s'hagi actualitzat.
+ */
+var CAU_CONF = 'lliure-config';
+var URL_CONF = './__config.json', URL_PENDENTS = './__preses-pendents.json';
+
+function identificaPresa_(d) {
+  if (d.data && d.k !== undefined && d.k !== '') return { data: String(d.data), k: Number(d.k) };
+  var t = /Pastilla\s*·\s*(\d+)\s*de\s*\d+/.exec(d.titol || '');
+  var dia = /Dia\s+(\d+)\s+de\s+25/.exec(d.cos || '');
+  if (!dia) return null;
+  if (!t && !/^Pastilles$/.test(d.titol || '')) return null;
+  if (/funcionen|prova/i.test(d.cos || '')) return null;
+  return { dia: Number(dia[1]), k: t ? Number(t[1]) - 1 : 0 };
+}
+
+function llegeixCau_(url) {
+  return caches.open(CAU_CONF).then(function (c) { return c.match(url); })
+    .then(function (r) { return r ? r.json() : null; }).catch(function () { return null; });
+}
+function desaCau_(url, obj) {
+  return caches.open(CAU_CONF).then(function (c) {
+    return c.put(url, new Response(JSON.stringify(obj), { headers: { 'Content-Type': 'application/json' } }));
+  });
+}
+function isoDe_(d) {
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+}
+
+function marcaPresa_(presa) {
+  return llegeixCau_(URL_CONF).then(function (conf) {
+    conf = conf || {};
+    var data = presa.data;
+    if (!data && presa.dia && conf.tracInici) {
+      var p = conf.tracInici.split('-').map(Number);
+      data = isoDe_(new Date(p[0], p[1] - 1, p[2] + presa.dia - 1, 12));
+    }
+    if (!data) throw new Error('No sé de quin dia és aquesta presa.');
+    var marca = { data: data, k: presa.k };
+    // 1. Per a l'app: la recull quan l'obris.
+    var aLaPantalla = llegeixCau_(URL_PENDENTS).then(function (l) {
+      l = Array.isArray(l) ? l : [];
+      l.push(marca);
+      return desaCau_(URL_PENDENTS, l);
+    });
+    // 2. Per al servidor: que no te'n torni a avisar.
+    var alServidor = (conf.url && conf.clau)
+      ? fetch(conf.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ clau: conf.clau, accio: 'presa', params: { data: data, k: presa.k, feta: true } }) })
+          .catch(function () {})
+      : Promise.resolve();
+    return Promise.all([aLaPantalla, alServidor]);
+  });
+}
+
 self.addEventListener('notificationclick', function (ev) {
   ev.notification.close();
+
+  if (ev.action === 'presa') {
+    var presa = ev.notification.data && ev.notification.data.presa;
+    ev.waitUntil(
+      (presa ? marcaPresa_(presa) : Promise.reject(new Error('sense presa')))
+        .then(function () {
+          // Una confirmació curta, i se'n va sola.
+          return self.registration.showNotification('Pastilla marcada', {
+            body: 'Feta ✓', tag: 'lliure-marcada', silent: true
+          }).then(function () {
+            return new Promise(function (ok) { setTimeout(ok, 3000); });
+          }).then(function () {
+            return self.registration.getNotifications({ tag: 'lliure-marcada' });
+          }).then(function (l) { l.forEach(function (n) { n.close(); }); });
+        })
+        .catch(function () {
+          return self.registration.showNotification('No s\'ha pogut marcar', {
+            body: 'Obre l\'app i marca-la allà.', tag: 'lliure-marcada'
+          });
+        })
+    );
+    return;
+  }
 
   var arrel = self.registration.scope.replace(/fcm\/$/, '');
   var brut = (ev.notification.data && ev.notification.data.url) || './';

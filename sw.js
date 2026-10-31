@@ -6,7 +6,7 @@
  * connexió. Els avisos els porta un altre treballador (firebase-messaging-sw.js,
  * abast ./fcm/), perquè un abast només en pot tenir un.
  */
-var CAU = 'lliure-v2';
+var CAU = 'lliure-v3';
 var BASICS = ['./', 'index.html', 'manifest.webmanifest', 'fonts/hanken-grotesk.woff2', 'icona.svg', 'favicon.svg', 'icona-192.png'];
 
 self.addEventListener('install', function (ev) {
@@ -14,7 +14,8 @@ self.addEventListener('install', function (ev) {
 });
 self.addEventListener('activate', function (ev) {
   ev.waitUntil(caches.keys().then(function (claus) {
-    return Promise.all(claus.filter(function (k) { return k !== CAU; }).map(function (k) { return caches.delete(k); }));
+    // Només les versions velles de l'app: `lliure-config` és del botó «Presa ✓».
+    return Promise.all(claus.filter(function (k) { return /^lliure-v\d+$/.test(k) && k !== CAU; }).map(function (k) { return caches.delete(k); }));
   }).then(function () { return self.clients.claim(); }));
 });
 self.addEventListener('fetch', function (ev) {

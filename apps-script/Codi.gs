@@ -196,7 +196,7 @@ function cadaMinut() {
       var cos = p.lliure
         ? 'Avui, 1 o 2 comprimits. Dia ' + p.dia + ' de ' + DIES_TRAC + '.'
         : 'Toca la de les ' + hora + '. Dia ' + p.dia + ' de ' + DIES_TRAC + '.';
-      var r = envia_(estat, titol, cos, 'presa');
+      var r = envia_(estat, titol, cos, 'presa', { data: p.data, k: String(p.k) });
       estat.enviades[id] = r.enviades ? 'ok' : 'error';
       canvis = true;
     });
@@ -289,7 +289,7 @@ function testimoni_() {
   return t;
 }
 
-function envia_(estat, titol, cos, etiqueta) {
+function envia_(estat, titol, cos, etiqueta, extra) {
   var c = compte_();
   if (!c) return { enviades: 0, motiu: 'Falta FIREBASE_COMPTE.' };
   if (!estat.fitxa) return { enviades: 0, motiu: 'Cap mòbil registrat. Activa els avisos des de l\'app.' };
@@ -299,7 +299,8 @@ function envia_(estat, titol, cos, etiqueta) {
     payload: JSON.stringify({ message: {
       token: estat.fitxa,
       // `data` i no `notification`: la pinta el nostre treballador de servei.
-      data: { titol: titol, cos: cos, url: './', etiqueta: 'lliure-' + etiqueta },
+      // `data` i `k` diuen quina presa és: el botó «Presa ✓» la marca.
+      data: Object.assign({ titol: titol, cos: cos, url: './', etiqueta: 'lliure-' + etiqueta }, extra || {}),
       // Urgent: Android no la retarda encara que el mòbil estigui en repòs.
       // TTL curt: un avís de pastilla que arriba una hora tard no serveix.
       webpush: { headers: { Urgency: 'high', TTL: '1800' }, fcm_options: { link: './' } }

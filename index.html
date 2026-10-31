@@ -686,6 +686,7 @@ const Avisos = (function(){
     if(!clau) return Promise.reject(new Error('Falta la clau d\'accés.'));
     if(!potSerHi()) return Promise.reject(new Error(!window.isSecureContext ? 'Els avisos només funcionen des de la pàgina publicada, no des del fitxer.' : 'Aquest navegador no pot rebre avisos.'));
     localStorage.setItem(CLAU_SRV, JSON.stringify({url, clau}));
+    desaConfigPerAlTreballador();
     return Notification.requestPermission()
       .then(p => { if(p !== 'granted') throw new Error(p === 'denied' ? 'Has denegat els avisos. Per tornar-hi: cadenat de la barra d\'adreces → Notificacions → Permet.' : 'No has respost a la petició de permís.'); })
       .then(fitxa)
@@ -721,11 +722,36 @@ const Avisos = (function(){
   };
   $('avisosObre').onclick = () => { obre(false); setTimeout(() => $('avisosAj').scrollIntoView({behavior:'smooth'}), 320); };
 
+  /* EL QUE NECESSITA EL BOTÓ «PRESA ✓» DE LA NOTIFICACIÓ.
+     El treballador de servei no pot llegir el localStorage, però sí la
+     memòria cau: l'adreça, la clau i el dia 1 es deixen allà. */
+  function desaConfigPerAlTreballador(){
+    if(!('caches' in window)) return;
+    const s = srv();
+    caches.open('lliure-config').then(c => c.put('./__config.json', new Response(JSON.stringify({
+      url: s.url || '', clau: s.clau || '', tracInici: (cfg && cfg.tracInici) || '', tracHora: (cfg && cfg.tracHora) || ''
+    }), {headers: {'Content-Type': 'application/json'}}))).catch(() => {});
+  }
+  /* Les preses marcades des de la notificació, amb l'app tancada: el
+     treballador les deixa a la memòria cau i aquí es recullen. */
+  function recullPendents(){
+    if(!('caches' in window)) return;
+    caches.open('lliure-config').then(c => c.match('./__preses-pendents.json').then(r => r ? r.json() : null).then(l => {
+      if(!Array.isArray(l) || !l.length) return;
+      l.forEach(m => { const a = preses[m.data] || []; if(!a.includes(m.k)) preses[m.data] = [...a, m.k]; });
+      localStorage.setItem(CLAU_PRESES, JSON.stringify(preses));
+      return c.delete('./__preses-pendents.json').then(() => { ultimMinut = -1; pintaPastilles(); });
+    })).catch(() => {});
+  }
+  document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') recullPendents(); });
+  recullPendents();
+  desaConfigPerAlTreballador();
+
   setTimeout(actualitza, 5000);
   pinta();
   return {
     omple(){ const s = srv(); $('inUrl').value = s.url || ''; $('inClau').value = s.clau || ''; $('avisosError').hidden = true; pinta(); },
-    pauta(){ if(actius()) crida('pauta', pautaActual()).catch(() => brindis('No he pogut avisar el servidor del canvi.')); },
+    pauta(){ desaConfigPerAlTreballador(); if(actius()) crida('pauta', pautaActual()).catch(() => brindis('No he pogut avisar el servidor del canvi.')); },
     presa(data, k, feta){ if(actius()) crida('presa', {data, k, feta}).catch(() => {}); },
   };
 })();
